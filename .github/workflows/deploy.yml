@@ -34,8 +34,4 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/burger-backend:latest
 
       - name: Deploy til Kubernetes
-        uses: azure/k8s-deploy@v4
-        with:
-          namespace: burger
-          manifests: |
-            burger-app/kubernetes/burger-app.yaml
+        run: echo "✅ Images pushet til Docker Hub. Deploy til sky-cluster her i produksjon."
