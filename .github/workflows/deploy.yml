@@ -33,5 +33,25 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/burger-backend:latest
 
-      - name: Deploy til Kubernetes
-        run: echo "✅ Images pushet til Docker Hub. Deploy til sky-cluster her i produksjon."
+      - name: Autentiser mot GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Sett opp gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Koble til GKE
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: burgerhouse
+          location: europe-west1-b
+
+      - name: Deploy til GKE
+        run: |
+          kubectl rollout restart deployment/frontend -n burger
+          kubectl rollout restart deployment/backend -n burger
+          kubectl rollout status deployment/frontend -n burger
+          kubectl rollout status deployment/backend -n burger
