@@ -40,6 +40,13 @@ spec:
               value: admin
             - name: POSTGRES_PASSWORD
               value: passord123
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -90,6 +97,25 @@ spec:
               value: passord123
             - name: DB_NAME
               value: burgerhouse
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
           ports:
             - containerPort: 3000
 ---
@@ -124,6 +150,13 @@ spec:
         - name: frontend
           image: burger-frontend:latest
           imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
           ports:
             - containerPort: 80
 ---
