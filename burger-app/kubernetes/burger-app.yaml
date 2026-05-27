@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: burger
+---
+# Database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: burger
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: burger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_DB
+              value: burgerhouse
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: passord123
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: burger
+spec:
+  selector:
+    app: database
+  ports:
+    - port: 5432
+---
+# Backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: burger
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: burger-backend:latest
+          imagePullPolicy: Never
+          env:
+            - name: DB_HOST
+              value: database
+            - name: DB_USER
+              value: admin
+            - name: DB_PASSWORD
+              value: passord123
+            - name: DB_NAME
+              value: burgerhouse
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: burger
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 3000
+---
+# Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: burger
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: burger-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: burger
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+---
+# Ingress burger.local
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: burger-ingress
+  namespace: burger
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: burger.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+---
+# Ingress bestillinger.local
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bestillinger-ingress
+  namespace: burger
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite ^/$ /bestillinger.html break;
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bestillinger.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

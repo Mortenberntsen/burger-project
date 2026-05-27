@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BurgerHouse – Bestillinger</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; }
+
+    header {
+      background: linear-gradient(135deg, #d62300, #ff4500);
+      padding: 1rem 5%;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 2px 20px rgba(214,35,0,0.5);
+    }
+    .logo { font-size: 1.8rem; font-weight: 900; }
+    .logo span { color: #ffd700; }
+    .back-btn {
+      background: #ffd700; color: #1a1a1a; padding: 0.5rem 1.4rem;
+      border-radius: 25px; font-weight: 700; text-decoration: none; font-size: 0.95rem;
+    }
+
+    .page-header {
+      padding: 3rem 5% 2rem;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .page-header h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .page-header h1 span { color: #d62300; }
+    .page-header p { color: #888; }
+
+    .stats {
+      display: flex; gap: 2rem; padding: 2rem 5%; flex-wrap: wrap;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .stat-card {
+      background: #2a2a2a; border-radius: 12px; padding: 1.2rem 2rem;
+      text-align: center; min-width: 140px;
+    }
+    .stat-card h3 { font-size: 2rem; font-weight: 800; color: #ffd700; }
+    .stat-card p { color: #888; font-size: 0.85rem; margin-top: 0.3rem; }
+
+    .orders-container { padding: 2rem 5%; }
+    .orders-table {
+      width: 100%; border-collapse: collapse;
+      background: #2a2a2a; border-radius: 12px; overflow: hidden;
+    }
+    .orders-table th {
+      background: #333; padding: 1rem 1.2rem; text-align: left;
+      font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .orders-table td {
+      padding: 1rem 1.2rem; border-bottom: 1px solid #333;
+      font-size: 0.95rem; vertical-align: top;
+    }
+    .orders-table tr:last-child td { border-bottom: none; }
+    .orders-table tr:hover td { background: #333; }
+    .order-id { color: #ffd700; font-weight: 700; }
+    .order-status {
+      background: #1a4a1a; color: #4caf50; padding: 0.25rem 0.8rem;
+      border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;
+    }
+    .order-total { color: #ffd700; font-weight: 700; }
+    .delete-btn {
+      background: #8b0000; color: #fff; border: none;
+      padding: 0.3rem 0.8rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.8rem; font-weight: 600; transition: background 0.2s;
+    }
+    .delete-btn:hover { background: #cc0000; }
+    .order-items { color: #aaa; font-size: 0.85rem; line-height: 1.6; }
+    .order-time { color: #666; font-size: 0.8rem; }
+
+    .empty { text-align: center; padding: 4rem; color: #555; }
+    .empty span { font-size: 4rem; display: block; margin-bottom: 1rem; }
+
+    .refresh-btn {
+      background: #d62300; color: #fff; border: none;
+      padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600;
+      cursor: pointer; margin-bottom: 1.5rem; font-size: 0.95rem;
+    }
+    .refresh-btn:hover { background: #ff4500; }
+
+    footer {
+      text-align: center; padding: 2rem; color: #555;
+      border-top: 1px solid #222; margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Burger<span>House</span></div>
+  <a href="http://burger.local" class="back-btn">← Tilbake til meny</a>
+</header>
+
+<div class="page-header">
+  <h1>📋 <span>Bestillinger</span></h1>
+  <p>Alle innkommende bestillinger — oppdateres automatisk</p>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <h3 id="total-orders">0</h3>
+    <p>Totalt bestillinger</p>
+  </div>
+  <div class="stat-card">
+    <h3 id="total-revenue">0 kr</h3>
+    <p>Total omsetning</p>
+  </div>
+  <div class="stat-card">
+    <h3 id="avg-order">0 kr</h3>
+    <p>Snitt per bestilling</p>
+  </div>
+</div>
+
+<div class="orders-container">
+  <button class="refresh-btn" onclick="loadOrders()">🔄 Oppdater</button>
+  <div id="orders-content">
+    <div class="empty"><span>⏳</span>Laster bestillinger...</div>
+  </div>
+</div>
+
+<footer>BurgerHouse Oslo © 2026 — Kjører på Kubernetes 🚀</footer>
+
+<script>
+const API = '/api';
+
+async function loadOrders() {
+  try {
+    const res = await fetch(`${API}/orders`);
+    const orders = await res.json();
+
+    document.getElementById('total-orders').textContent = orders.length;
+    const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+    document.getElementById('total-revenue').textContent = revenue + ' kr';
+    document.getElementById('avg-order').textContent = orders.length ? Math.round(revenue / orders.length) + ' kr' : '0 kr';
+
+    const content = document.getElementById('orders-content');
+    if (orders.length === 0) {
+      content.innerHTML = '<div class="empty"><span>🍔</span>Ingen bestillinger ennå</div>';
+      return;
+    }
+
+    content.innerHTML = `
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Kunde</th>
+            <th>Adresse</th>
+            <th>Bestilling</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Tidspunkt</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orders.map(o => `
+            <tr>
+              <td class="order-id">#${o.id}</td>
+              <td>
+                <strong>${o.customer_name}</strong><br>
+                <span style="color:#888;font-size:0.85rem">📱 ${o.customer_phone}</span>
+              </td>
+              <td style="color:#aaa;font-size:0.85rem">📍 ${o.customer_address}</td>
+              <td class="order-items">${o.items.map(i => `${i.qty}× ${i.name}`).join('<br>')}</td>
+              <td class="order-total">${o.total} kr</td>
+              <td><span class="order-status">✓ Bekreftet</span></td>
+              <td class="order-time">${new Date(o.created_at).toLocaleString('no-NO')}</td>
+              <td><button class="delete-btn" onclick="deleteOrder(${o.id})">🗑 Slett</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    document.getElementById('orders-content').innerHTML = '<div class="empty"><span>❌</span>Kunne ikke laste bestillinger</div>';
+  }
+}
+
+async function deleteOrder(id) {
+  if (!confirm('Slett bestilling #' + id + '?')) return;
+  await fetch(`${API}/orders/${id}`, { method: 'DELETE' });
+  loadOrders();
+}
+
+loadOrders();
+setInterval(loadOrders, 5000);
+</script>
+</body>
+</html>
